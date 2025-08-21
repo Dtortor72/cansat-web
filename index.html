@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telemetría CanSat</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+    body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #1e1e2f;
+        margin: 0;
+        color: #fff;
+    }
+    header {
+        background-color: #27293d;
+        text-align: center;
+        padding: 20px;
+        font-size: 2em;
+        font-weight: bold;
+        color: #00ffff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .chart-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 20px;
+    }
+    .chart {
+        background-color: #2e2e4d;
+        border-radius: 12px;
+        padding: 10px;
+        height: 400px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    @media(max-width: 800px){
+        .chart-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+<body>
+
+<header>📡 Telemetría CanSat - Dashboard</header>
+
+<div class="chart-container">
+    <div id="chartTemp" class="chart"></div>
+    <div id="chartHum" class="chart"></div>
+    <div id="chartPres" class="chart"></div>
+    <div id="chartAlt" class="chart"></div>
+</div>
+
+<script>
+// Cargar datos desde data.json
+async function loadData() {
+    const response = await fetch('data.json');
+    const data = await response.json();
+    return data;
+}
+
+// Convertir a hora local
+function localTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+// Dibujar cada gráfico
+async function drawCharts() {
+    const data = await loadData();
+    const times = data.map(d => localTime(d.time));
+
+    const charts = [
+        {id:'chartTemp', y:data.map(d=>d.temp), title:'Temperatura (°C)', color:'#ff5733'},
+        {id:'chartHum',  y:data.map(d=>d.hum),  title:'Humedad (%)', color:'#33c1ff'},
+        {id:'chartPres', y:data.map(d=>d.pres), title:'Presión (hPa)', color:'#33ff77'},
+        {id:'chartAlt',  y:data.map(d=>d.alt),  title:'Altitud (m)', color:'#ff33e3'}
+    ];
+
+    charts.forEach(c => {
+        const trace = { x: times, y: c.y, type:'scatter', mode:'lines+markers', line:{color:c.color, width:3}, marker:{size:6} };
+        const layout = {
+            title: c.title,
+            paper_bgcolor:'#2e2e4d',
+            plot_bgcolor:'#2e2e4d',
+            font:{color:'#ffffff'},
+            margin:{t:50, r:30, l:50, b:50},
+            xaxis:{title:'Hora local'},
+            yaxis:{title:c.title.split(' ')[0], showgrid:true, gridcolor:'#444'}
+        };
+        Plotly.newPlot(c.id,[trace],layout,{responsive:true});
+    });
+}
+
+// Inicial
+drawCharts();
+// Actualización cada 60 segundos
+setInterval(drawCharts, 60000);
+
+</script>
+
+</body>
+</html>
